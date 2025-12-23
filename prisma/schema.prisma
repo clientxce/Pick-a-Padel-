@@ -1,0 +1,119 @@
+// Prisma schema for Padel Park Pro
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum BookingStatus {
+  HOLD
+  CONFIRMED
+  CANCELLED
+  EXPIRED
+}
+
+enum PaymentStatus {
+  CREATED
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum CourtType {
+  INDOOR
+  OUTDOOR
+  PREMIUM
+}
+
+enum CourtStatus {
+  ACTIVE
+  MAINTENANCE
+  INACTIVE
+}
+
+model Court {
+  id           String      @id @default(cuid())
+  name         String
+  type         CourtType   @default(INDOOR)
+  status       CourtStatus @default(ACTIVE)
+  description  String?
+  pricePerHour Int         @default(100000)
+  location     String?
+  maxPlayers   Int         @default(4)
+  bookings     Booking[]
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@map("courts")
+}
+
+model Booking {
+  id                 String        @id @default(cuid())
+  courtId            String
+  court              Court         @relation(fields: [courtId], references: [id], onDelete: Restrict)
+  userId             String
+  userEmail          String
+  userName           String?
+  userPhone          String?
+  date               DateTime      @db.Date
+  timeSlot           String
+  duration           Int           @default(60)
+  status             BookingStatus @default(HOLD)
+  paymentId          String?       @unique
+  payment            Payment?      @relation(fields: [paymentId], references: [id])
+  amount             Int
+  notes              String?
+  expiresAt          DateTime?
+  confirmedAt        DateTime?
+  cancelledAt        DateTime?
+  cancellationReason String?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  @@unique([courtId, date, timeSlot, status], name: "unique_active_booking")
+  @@index([userId])
+  @@index([date, timeSlot])
+  @@index([status])
+  @@index([expiresAt])
+  @@map("bookings")
+}
+
+model Payment {
+  id                 String        @id @default(cuid())
+  razorpayOrderId    String        @unique
+  razorpayPaymentId  String?       @unique
+  razorpaySignature  String?
+  amount             Int
+  currency           String        @default("INR")
+  status             PaymentStatus @default(CREATED)
+  method             String?
+  bank               String?
+  cardLast4          String?
+  email              String?
+  phone              String?
+  refundId           String?       @unique
+  refundAmount       Int?
+  refundStatus       String?
+  refundReason       String?
+  refundedAt         DateTime?
+  errorCode          String?
+  errorDescription   String?
+  failureReason      String?
+  metadata           Json?
+  booking            Booking?
+  webhookReceivedAt  DateTime?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  @@index([status])
+  @@index([razorpayOrderId])
+  @@index([razorpayPaymentId])
+  @@index([createdAt])
+  @@map("payments")
+}
+
