@@ -12,6 +12,16 @@ dist
 dist-ssr
 *.local
 
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Prisma
+prisma/.env
+prisma/migrations/*
+!prisma/migrations/.gitkeep
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
